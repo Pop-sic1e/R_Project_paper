@@ -109,59 +109,38 @@ write.csv(nodes, file = "./data/nodes.csv", row.names = FALSE)
 
 
 # DOI 정리 - 첫번째 사이클
-edges <- read.csv('./data/edges.csv') # 재호출
-edges <- edges[,2:3] # csv의 index 열 제거
+# 데이터 불러오기
+edges <- read.csv('./data/edges.csv')[, 2:3]  # Index 제거
 nodes <- read.csv('./data/nodes.csv')
-nodes <- nodes[nodes$type == 'journal-article', ] # Journal만
-nodes <- nodes[!duplicated(nodes$doi), ] # 노드 중복 행 제거
-# Unique DOI 추출
-cited_doi <- unique(edges$cited)
-citing_doi <- unique(edges$citing)
-edge_doi_vec <- unique(c(cited_doi, citing_doi))
-nodes_extract_doi <- unique(nodes$doi)
-left_nodes_doi <- setdiff(edge_doi_vec, nodes_extract_doi) # 제거 DOI 추출
-# 제거 전 : Length 비교 : TRUE 나와야함
-length(nodes_extract_doi) == (length(edge_doi_vec) - length(left_nodes_doi))
-# Edge에서 제거 해야하는 idx 추출
-idx_vec <- which(edges$citing %in% left_nodes_doi | edges$cited %in% left_nodes_doi)
-# Edge 데이터 제거
-edges <- edges[-idx_vec,]
+nodes <- nodes[nodes$type == 'journal-article', ]  # Journal만 추출
+nodes <- nodes[!duplicated(nodes$doi), ]  # 중복 제거
 
-# node-doi가 edge-doi보다 많은 상황 -> node-doi를 필터링 해야함
-cited_doi2 <- unique(edges$cited)
-citing_doi2 <- unique(edges$citing)
-edge_doi_vec2 <- unique(c(cited_doi2, citing_doi2))
-nodes <- nodes[nodes$doi %in% edge_doi_vec2, ]
+# DOI 추출
+edge_doi_vec <- unique(c(edges$cited, edges$citing))  # Edge의 DOI
+nodes_doi <- unique(nodes$doi)  # Node의 DOI
 
-# 최종 필터링
-missing_in_nodes <- setdiff(edge_doi_vec2, nodes$doi)
-extra_in_nodes <- setdiff(nodes$doi, edge_doi_vec2)
-nodes$doi <- as.character(nodes$doi)
-edge_doi_vec2 <- as.character(edge_doi_vec2)
-nodes_unique <- unique(nodes$doi)
-edge_doi_unique <- unique(edge_doi_vec2)
-# Edge와 Node 데이터 다시 필터링 (중복 제거 후)
-edges <- edges[edges$citing %in% nodes_unique & edges$cited %in% nodes_unique, ]
-nodes <- nodes[nodes$doi %in% edge_doi_unique, ]
+# Edge에서 Node에 없는 DOI 제거
+edges <- edges[edges$citing %in% nodes_doi & edges$cited %in% nodes_doi, ]
 
-### 최종확인 : TRUE 나와야함
-length(nodes$doi) == length(edge_doi_vec2)
-#Edge 인덱스 초기화 및 csv 추출
-rownames(edges) <- NULL
-write.csv(nodes, file='./data/nodes_final.csv')
-write.csv(edges, file='./data/edges_final.csv')
+# Node에서 Edge에 없는 DOI 제거
+edge_doi_vec <- unique(c(edges$cited, edges$citing))  # 다시 Edge DOI 계산
+nodes <- nodes[nodes$doi %in% edge_doi_vec, ]
+
+# 최종 검증: Node와 Edge DOI 일치 확인
+stopifnot(length(unique(nodes$doi)) == length(unique(c(edges$cited, edges$citing))))
+
+# 결과 저장
+write.csv(nodes, file = './data/nodes_final.csv', row.names = FALSE)
+write.csv(edges, file = './data/edges_final.csv', row.names = FALSE)
 cat("Processing completed.\n")
 
 
 
 
-# 두번째 사이클 데이터 추출
-doi_vec <- citing_doi2 # 1번째 사이클의 최종 인용 논문의 doi만 사용
-"
 # 데이터 지우고 할 경우
 doi_vec <- read.csv('./data/edges_final.csv')
 doi_vec <- unique(doi_vec[,2])
-"
+
 # 논문 인용 데이터 추출 및 csv 변환
 data_list <- list()
 for (i in 1:length(doi_vec)) {
@@ -184,47 +163,28 @@ nodes <- make_node(node_doi_vec)
 write.csv(nodes, file = "./data/nodes2.csv", row.names = FALSE)
 
 
-# DOI 정리 - 첫번째 사이클
-edges <- read.csv('./data/edges2.csv') # 재호출
+# DOI 정리 - 두번째 사이클
+# 데이터 불러오기
+edges <- read.csv('./data/edges2.csv')[, 2:3]  # Index 제거
 nodes <- read.csv('./data/nodes2.csv')
-edges <- edges[,2:3] # csv의 index 열 제거
-nodes <- nodes[,2:length(nodes)] # csv의 index 열 제거
-nodes <- nodes[nodes$type == 'journal-article', ] # Journal만
-nodes <- nodes[!duplicated(nodes$doi), ] # 노드 중복 행 제거
-# Unique DOI 추출
-cited_doi <- unique(edges$cited)
-citing_doi <- unique(edges$citing)
-edge_doi_vec <- unique(c(cited_doi, citing_doi))
-nodes_extract_doi <- unique(nodes$doi)
-left_nodes_doi <- setdiff(edge_doi_vec, nodes_extract_doi) # 제거 DOI 추출
-# 제거 전 : Length 비교 : TRUE 나와야함
-length(nodes_extract_doi) == (length(edge_doi_vec) - length(left_nodes_doi))
-# Edge에서 제거 해야하는 idx 추출
-idx_vec <- which(edges$citing %in% left_nodes_doi | edges$cited %in% left_nodes_doi)
-# Edge 데이터 제거
-edges <- edges[-idx_vec,]
+nodes <- nodes[nodes$type == 'journal-article', ]  # Journal만 추출
+nodes <- nodes[!duplicated(nodes$doi), ]  # 중복 제거
 
-# node-doi가 edge-doi보다 많은 상황 -> node-doi를 필터링 해야함
-cited_doi2 <- unique(edges$cited)
-citing_doi2 <- unique(edges$citing)
-edge_doi_vec2 <- unique(c(cited_doi2, citing_doi2))
-nodes <- nodes[nodes$doi %in% edge_doi_vec2, ]
+# DOI 추출
+edge_doi_vec <- unique(c(edges$cited, edges$citing))  # Edge의 DOI
+nodes_doi <- unique(nodes$doi)  # Node의 DOI
 
-# 최종 필터링
-missing_in_nodes <- setdiff(edge_doi_vec2, nodes$doi)
-extra_in_nodes <- setdiff(nodes$doi, edge_doi_vec2)
-nodes$doi <- as.character(nodes$doi)
-edge_doi_vec2 <- as.character(edge_doi_vec2)
-nodes_unique <- unique(nodes$doi)
-edge_doi_unique <- unique(edge_doi_vec2)
-# Edge와 Node 데이터 다시 필터링 (중복 제거 후)
-edges <- edges[edges$citing %in% nodes_unique & edges$cited %in% nodes_unique, ]
-nodes <- nodes[nodes$doi %in% edge_doi_unique, ]
+# Edge에서 Node에 없는 DOI 제거
+edges <- edges[edges$citing %in% nodes_doi & edges$cited %in% nodes_doi, ]
 
-### 최종확인 : TRUE 나와야함
-length(nodes$doi) == length(edge_doi_vec2)
-#Edge 인덱스 초기화 및 csv 추출
-rownames(edges) <- NULL
-write.csv(nodes, file='./data/nodes_final_2.csv')
-write.csv(edges, file='./data/edges_final_2.csv')
+# Node에서 Edge에 없는 DOI 제거
+edge_doi_vec <- unique(c(edges$cited, edges$citing))  # 다시 Edge DOI 계산
+nodes <- nodes[nodes$doi %in% edge_doi_vec, ]
+
+# 최종 검증: Node와 Edge DOI 일치 확인
+stopifnot(length(unique(nodes$doi)) == length(unique(c(edges$cited, edges$citing))))
+
+# 결과 저장
+write.csv(nodes, file = './data/nodes_final_2.csv', row.names = FALSE)
+write.csv(edges, file = './data/edges_final_2.csv', row.names = FALSE)
 cat("Processing completed.\n")
